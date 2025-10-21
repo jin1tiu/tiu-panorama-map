@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>東京国際大学 360度ビューマップ</title>
-    <base href="/tiu-panorama-map/">
+   
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -146,31 +146,28 @@
     <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">東京国際大学 360度パノラママップ (アセット適用版)</h1>
 
     <div class="map-container relative w-full">
-       <img src="/tiu-panorama-map/map_small_800.jpg" ... > 
-     alt="東京国際大学 キャンパスマップ" class="map-image" id="illustrationMap"
-     onerror="this.style.display='none'; document.getElementById('mapError').style.display='block'; console.error('マップ画像のロードに失敗しました。')">y='block'; console.error('マップ画像のロードに失敗しました。')">
-        
+       <img src="map_small_800.jpg" alt="東京国際大学 キャンパスマップ" class="map-image" id="illustrationMap" onerror="this.style.display='none'; document.getElementById('mapError').style.display='block'; console.error('マップ画像のロードに失敗しました。')">
         <div id="mapError" class="hidden text-center p-8 bg-white text-red-600 font-semibold">
             マップ画像のロードに失敗しました。ファイルIDを確認してください。
         </div>
 
        <div class="hotspot" style="left: 51%; top: 32%; width: 5%; height: 5%;"
-     data-content-type="image360" data-content-url="/tiu-panorama-map/entrance.jpg">ENTRANCE</div>
+     data-content-type="image360" data-content-url="entrance.jpg">ENTRANCE</div>
 
 <div class="hotspot" style="left: 61%; top: 38%; width: 5%; height: 5%;"
-     data-content-type="image360" data-content-url="/tiu-panorama-map/atrium.jpg">ATRIUM</div>
+     data-content-type="image360" data-content-url="atrium.jpg">ATRIUM</div>
 
 <div class="hotspot" style="left: 69%; top: 15%; width: 5%; height: 5%;"
-     data-content-type="image360" data-content-url="/tiu-panorama-map/8floor.jpg">8F</div>
+     data-content-type="image360" data-content-url="8floor.jpg">8F</div>
 
 <div class="hotspot" style="left: 53%; top: 68%; width: 5%; height: 5%;"
-     data-content-type="image360" data-content-url="/tiu-panorama-map/ikesanpark.jpg">PARK</div>
+     data-content-type="image360" data-content-url="ikesanpark.jpg">PARK</div>
 
 <div class="hotspot" style="left: 76%; top: 36%; width: 5%; height: 5%;"
-     data-content-type="image360" data-content-url="/tiu-panorama-map/store.jpg">STORE</div>
+     data-content-type="image360" data-content-url="store.jpg">STORE</div>
 
 <div class="hotspot" style="left: 58%; top: 31%; width: 5%; height: 5%;"
-     data-content-type="video360" data-content-url="/tiu-panorama-map/class_video.mp4">CLASS</div>
+     data-content-type="video360" data-content-url="class_video.mp4">CLASS</div>
     </div>
 
     <div id="modalOverlay" class="modal-overlay">
