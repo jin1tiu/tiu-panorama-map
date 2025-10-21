@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東京国際大学 360度ビューマップ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* 全体のフォントと背景色を設定 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; 
+            padding: 1rem;
+        }
+        /* マップの画像を囲むコンテナのスタイル */
+        .map-container {
+            position: relative; /* ホットスポットを配置するために必要 */
+            max-width: 900px; /* マップの最大幅 */
+            margin: 2rem auto; /* 中央寄せと上下の余白 */
+            border-radius: 1rem; /* 角丸 */
+            overflow: hidden; /* はみ出しを隠す */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* 影 */
+        }
+        /* マップ画像のスタイル */
+        .map-image {
+            width: 100%; /* 親要素の幅いっぱいに広げる */
+            height: auto; /* 高さは自動調整 */
+            display: block; /* 余計な隙間をなくす */
+        }
+        /* ホットスポットのスタイル */
+        .hotspot {
+            position: absolute;
+            background-color: rgba(255, 165, 0, 0.8); 
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            min-width: 40px; 
+            min-height: 40px;
+        }
+        .hotspot:hover {
+            background-color: rgba(255, 140, 0, 1); 
+            transform: scale(1.1);
+        }
+        /* モーダル（パノラマビューア）のスタイル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0; 
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            width: 95vw;
+            height: 95vh;
+            max-width: 1000px; 
+            max-height: 750px; 
+            position: relative;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        /* Three.jsのCanvasが挿入されるコンテナ */
+        #panoramaContainer {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        /* 閉じるボタン */
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: background-color 0.2s;
+        }
+        .modal-close-button:hover {
+            background: rgba(255, 0, 0, 0.8);
+        }
+        /* ローディングインジケーター */
+        #loadingIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1002;
+            display: none;
+        }
+        /* 動画再生ブロック時のメッセージ */
+        .autoplay-block-message {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%,-50%); 
+            color: white; 
+            background: #e3342f; 
+            padding: 15px 30px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            z-index: 1003;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">東京国際大学 360度パノラママップ (アセット適用版)</h1>
+
+    <div class="map-container relative w-full">
+       <img src="map_small_800.jpg" 
+     alt="東京国際大学 キャンパスマップ" class="map-image" id="illustrationMap"
+     onerror="this.style.display='none'; document.getElementById('mapError').style.display='block'; console.error('マップ画像のロードに失敗しました。')">y='block'; console.error('マップ画像のロードに失敗しました。')">
+        
+        <div id="mapError" class="hidden text-center p-8 bg-white text-red-600 font-semibold">
+            マップ画像のロードに失敗しました。ファイルIDを確認してください。
+        </div>
+
+       <div class="hotspot" style="left: 51%; top: 32%; width: 5%; height: 5%;"
+     data-content-type="image360" data-content-url="ENTRANCE.jpg">ENTRANCE</div>
+
+<div class="hotspot" style="left: 61%; top: 38%; width: 5%; height: 5%;"
+     data-content-type="image360" data-content-url="ATRIUM.jpg">ATRIUM</div>
+
+<div class="hotspot" style="left: 69%; top: 15%; width: 5%; height: 5%;"
+     data-content-type="image360" data-content-url="8FLOOR.jpg">8F</div>
+
+<div class="hotspot" style="left: 53%; top: 68%; width: 5%; height: 5%;"
+     data-content-type="image360" data-content-url="IKESANPARK.jpg">PARK</div>
+
+<div class="hotspot" style="left: 76%; top: 36%; width: 5%; height: 5%;"
+     data-content-type="image360" data-content-url="STORE.jpg">STORE</div>
+
+<div class="hotspot" style="left: 58%; top: 31%; width: 5%; height: 5%;"
+     data-content-type="video360" data-content-url="CLASS VIDEO.MP4">CLASS</div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay">
+        <div id="modalContent" class="modal-content">
+            <button id="closeModal" class="modal-close-button">&times;</button>
+            <div id="loadingIndicator">コンテンツを読み込み中...</div>
+            <div id="panoramaContainer">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.jsのグローバル変数
+        let camera, scene, renderer, mesh;
+        let isUserInteracting = false,
+            onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+            lon = 0, onMouseDownLon = 0,
+            lat = 0, onMouseDownLat = 0,
+            phi = 0, theta = 0;
+        let videoElement = null;
+
+        /**
+         * Three.jsのシーンを初期化し、360度コンテンツをロードします。
+         * @param {string} url - 360度画像または動画の完全なContent Fetch ID
+         * @param {string} type - 'image360' または 'video360'
+         */
+        function init(url, type) {
+            disposeViewer(); 
+
+            const container = document.getElementById('panoramaContainer');
+            if (container.clientWidth === 0 || container.clientHeight === 0) {
+                 console.error("コンテナサイズがゼロです。Three.jsの初期化をスキップします。");
+                 return;
+            }
+
+            camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 1, 1100 );
+            camera.target = new THREE.Vector3( 0, 0, 0 );
+
+            scene = new THREE.Scene();
+
+            const geometry = new THREE.SphereGeometry( 500, 60, 40 );
+            geometry.scale( - 1, 1, 1 );
+
+            let texture;
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block'; 
+            loadingIndicator.textContent = 'コンテンツを読み込み中...';
+
+            if (type === 'image360') {
+                // 360度画像の場合
+                texture = new THREE.TextureLoader().load(url, 
+                    // ロード完了
+                    function (tex) {
+                        loadingIndicator.style.display = 'none'; 
+                        animate();
+                    },
+                    // ロード進行中 (今回は未使用)
+                    undefined,
+                    // ロードエラー
+                    function (err) {
+                        loadingIndicator.textContent = 'エラー: 360度画像ファイルが見つかりません (' + url + ')';
+                        console.error('360度画像のロードエラー:', url, err);
+                    }
+                );
+            } else if (type === 'video360') {
+                // 360度動画の場合
+                videoElement = document.createElement('video');
+                videoElement.src = url;
+                videoElement.loop = true;
+                videoElement.muted = true; // 自動再生を試みるためにミュート
+                videoElement.crossOrigin = 'anonymous'; 
+                videoElement.playsInline = true;
+                
+                // 動画の読み込みが成功した場合
+                videoElement.onloadeddata = function() {
+                    loadingIndicator.style.display = 'none'; 
+                    videoElement.play().then(() => {
+                        // 自動再生に成功
+                        animate();
+                    }).catch(e => {
+                        // 自動再生がブロックされた場合
+                        console.warn('動画の自動再生がブロックされました。ユーザー操作を待機します。', e);
+                        const msg = document.createElement('div');
+                        msg.className = 'autoplay-block-message';
+                        msg.textContent = 'タップまたはクリックして動画を再生';
+                        container.appendChild(msg);
+                        
+                        msg.onclick = () => { 
+                            videoElement.muted = false; // ユーザー操作でミュート解除を試みる
+                            videoElement.play(); 
+                            container.removeChild(msg); 
+                        };
+                        animate(); // 動画がなくてもアニメーションを開始し、テクスチャの更新を待つ
+                    });
+                };
+                // 動画の読み込みが失敗した場合
+                videoElement.onerror = function(e) {
+                    loadingIndicator.textContent = 'エラー: 360度動画ファイルが見つかりません (' + url + ')';
+                    console.error('360度動画のロードエラー:', url, e);
+                };
+                
+                texture = new THREE.VideoTexture(videoElement);
+            }
+
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true }); 
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // イベントリスナーの設定
+            container.addEventListener('mousedown', onPointerStart, false);
+            container.addEventListener('mousemove', onPointerMove, false);
+            container.addEventListener('mouseup', onPointerEnd, false);
+            container.addEventListener('wheel', onDocumentMouseWheel, false);
+            container.addEventListener('touchstart', onPointerStart, false);
+            container.addEventListener('touchmove', onPointerMove, false);
+            container.addEventListener('touchend', onPointerEnd, false);
+            
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        /**
+         * Three.jsのビューアをクリーンアップし、リソースを解放します。
+         */
+        function disposeViewer() {
+            // 自動再生ブロックメッセージを削除
+            const container = document.getElementById('panoramaContainer');
+            const message = container.querySelector('.autoplay-block-message');
+            if (message) {
+                container.removeChild(message);
+            }
+
+            if (renderer) {
+                // イベントリスナーを削除
+                container.removeEventListener('mousedown', onPointerStart, false);
+                container.removeEventListener('mousemove', onPointerMove, false);
+                container.removeEventListener('mouseup', onPointerEnd, false);
+                container.removeEventListener('wheel', onDocumentMouseWheel, false);
+                container.removeEventListener('touchstart', onPointerStart, false);
+                container.removeEventListener('touchmove', onPointerMove, false);
+                container.removeEventListener('touchend', onPointerEnd, false);
+                window.removeEventListener('resize', onWindowResize, false);
+                
+                // シーンとテクスチャの解放
+                if (mesh) {
+                    mesh.geometry.dispose();
+                    if (mesh.material.map) mesh.material.map.dispose();
+                    mesh.material.dispose();
+                    scene.remove(mesh);
+                }
+                renderer.dispose();
+
+                // Canvasを削除
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+            }
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.removeAttribute('src');
+                videoElement.load();
+                videoElement = null;
+            }
+            // グローバル変数をリセット
+            camera = null;
+            scene = null;
+            renderer = null;
+            mesh = null;
+        }
+
+
+        // ウィンドウサイズ変更時の処理
+        function onWindowResize() {
+            const container = document.getElementById('panoramaContainer');
+            if (camera && renderer && container.clientWidth > 0 && container.clientHeight > 0) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        }
+        
+        // アニメーションループ
+        function animate() {
+            if (!renderer) return; 
+            requestAnimationFrame(animate);
+            update();
+        }
+
+        // カメラ位置の更新ロジック
+        function update() {
+            if (!camera || !renderer) return;
+
+            // 動画テクスチャの更新
+            if (videoElement && videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) { 
+                if (mesh && mesh.material && mesh.material.map) {
+                    mesh.material.map.needsUpdate = true;
+                }
+            }
+
+            if (!isUserInteracting) {
+                // 自動回転（アイドル時）
+                lon += 0.01; 
+            }
+
+            // 縦方向の回転を制限
+            lat = Math.max( - 85, Math.min( 85, lat ) );
+            phi = THREE.MathUtils.degToRad( 90 - lat );
+            theta = THREE.MathUtils.degToRad( lon );
+
+            // カメラのターゲット位置を計算
+            camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
+            camera.target.y = 500 * Math.cos( phi );
+            camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
+
+            camera.lookAt( camera.target );
+
+            renderer.render( scene, camera );
+        }
+
+        // マウス/タッチダウン開始時の処理 (ドラッグ開始)
+        function onPointerStart(event) {
+            isUserInteracting = true;
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+            onMouseDownMouseX = clientX;
+            onMouseDownMouseY = clientY;
+            onMouseDownLon = lon;
+            onMouseDownLat = lat;
+        }
+
+        // マウス/タッチ移動時の処理 (ドラッグ操作)
+        function onPointerMove(event) {
+            if (isUserInteracting === true) {
+                const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+                const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+                lon = (onMouseDownMouseX - clientX) * 0.1 + onMouseDownLon;
+                lat = (clientY - onMouseDownMouseY) * 0.1 + onMouseDownLat;
+            }
+        }
+
+        // マウス/タッチアップ終了時の処理 (ドラッグ終了)
+        function onPointerEnd() {
+            isUserInteracting = false;
+        }
+
+        // マウスホイールでのズーム処理
+        function onDocumentMouseWheel(event) {
+            if (!camera) return;
+            camera.fov += event.deltaY * 0.05;
+            camera.fov = Math.max( 30, Math.min( 90, camera.fov ) ); 
+            camera.updateProjectionMatrix();
+        }
+
+        // =======================================================
+        // メイン処理 (DOM操作)
+        // =======================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const hotspots = document.querySelectorAll('.hotspot');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const closeModalButton = document.getElementById('closeModal');
+            const mapImage = document.getElementById('illustrationMap');
+            
+            // マップ画像のロード成功/失敗をチェック
+            mapImage.onload = () => {
+                document.getElementById('mapError').style.display = 'none';
+                console.log('マップ画像は正常にロードされました。');
+            };
+            mapImage.onerror = () => {
+                mapImage.style.display = 'none';
+                document.getElementById('mapError').style.display = 'block';
+                // エラーログ
+                console.error('重大なエラー: マップ画像のロードに失敗しました。ファイルIDを確認してください。');
+            };
+
+
+            // モーダルを閉じる処理
+            const closeAndResetModal = () => {
+                modalOverlay.classList.remove('show');
+                disposeViewer(); 
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                loadingIndicator.style.display = 'none';
+                loadingIndicator.textContent = 'コンテンツを読み込み中...';
+            };
+
+            // ホットスポットクリックイベント
+            hotspots.forEach(hotspot => {
+                hotspot.addEventListener('click', function() {
+                    const contentType = this.getAttribute('data-content-type');
+                    const contentUrl = this.getAttribute('data-content-url');
+
+                    if (contentType === 'image360' || contentType === 'video360') {
+                        modalOverlay.classList.add('show');
+                        // init関数に正しいファイルパスとタイプを渡す
+                        init(contentUrl, contentType); 
+                    } else {
+                        console.log('サポートされていないコンテンツタイプ:', contentType);
+                    }
+                });
+            });
+
+            // 閉じるボタンのイベント
+            closeModalButton.addEventListener('click', closeAndResetModal);
+
+            // 背景クリックで閉じるイベント
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closeAndResetModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
